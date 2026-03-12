@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ИТ . CRM - ТОП 50 ШКОЛ</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            blue: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
+            slate: { 50: '#f8fafc', 800: '#1e293b', 900: '#0f172a' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@1,400;1,700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #f8fafc;
+      --accent: #3b82f6;
+    }
+    
+    * {
+      box-sizing: border-box;
+      font-family: 'Roboto Condensed', sans-serif !important;
+      font-style: italic !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body, html {
+      margin: 0; padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+    
+    /* Стилизация скроллбара под темную тему */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Эффекты стекла (Glassmorphism) */
+    .glass {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .glass-card {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+  </style>
+</head>
+<body class="antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+    
+    // Polyfill для Lucide Icons
+    const createLucideIcon = (iconName) => {
+      return ({ className }) => {
+        const ref = useRef(null);
+        useEffect(() => {
+          if (ref.current) {
+            ref.current.innerHTML = '';
+            const iconSvg = lucide.icons[iconName];
+            if (iconSvg) {
+              const parser = new DOMParser();
+              const svgDoc = parser.parseFromString(iconSvg.toSvg({ class: className, width: 24, height: 24 }), 'image/svg+xml');
+              ref.current.appendChild(svgDoc.documentElement);
+            }
+          }
+        }, [className]);
+        return <span ref={ref} className="inline-flex items-center justify-center"></span>;
+      };
+    };
+
+    const Settings = createLucideIcon('Settings');
+    const Navigation = createLucideIcon('Navigation');
+    const Trophy = createLucideIcon('Trophy');
+    const Star = createLucideIcon('Star');
+    const CreditCard = createLucideIcon('CreditCard');
+    const GraduationCap = createLucideIcon('GraduationCap');
+    const Info = createLucideIcon('Info');
+    const Filter = createLucideIcon('Filter');
+    const ChevronUp = createLucideIcon('ChevronUp');
+    const ChevronDown = createLucideIcon('ChevronDown');
+    const Globe = createLucideIcon('Globe');
+    const Clock = createLucideIcon('Clock');
+    const XCircle = createLucideIcon('XCircle');
+
+    const initialSchoolsData = [
+      { id: 's1', name: 'Школа 548 ЗИЛАРТ', rating: 13, distance: 1.2, time: 4, site: 'https://sch548.mskobr.ru', phone: '+74953988826', profile: 'Кванториум . Роботы', olympiadScore: 85, isPaid: false },
+      { id: 's2', name: 'Школа 548 Совхоз Ленина', rating: 13, distance: 19, time: 35, site: 'https://sch548.mskobr.ru', phone: '+74955480025', profile: 'Инженерия . ЧПУ', olympiadScore: 92, isPaid: false },
+      { id: 's3', name: 'Лицей 1533 ЛИТ', rating: 73, distance: 13, time: 25, site: 'https://lit.mskobr.ru', phone: '+74991334306', profile: 'Программирование', olympiadScore: 120, isPaid: false },
+      { id: 's4', name: 'Бауманская школа 1580', rating: 5, distance: 13, time: 25, site: 'https://lycu1580.mskobr.ru', phone: '+74953165022', profile: 'Информатика', olympiadScore: 245, isPaid: false },
+      { id: 's5', name: 'Школа 1580 Символ', rating: 5, distance: 10.5, time: 22, site: 'https://lycu1580.mskobr.ru', phone: '+74953165022', profile: 'ИТ полигон', olympiadScore: 210, isPaid: false },
+      { id: 's6', name: 'Школа Летово', rating: 1, distance: 28.5, time: 68, site: 'https://letovo.ru', phone: '+74951238514', profile: 'ИИ лаборатории', olympiadScore: 310, isPaid: true },
+      { id: 's7', name: 'СУНЦ МГУ', rating: 12, distance: 20, time: 40, site: 'https://internat.msu.ru', phone: '+74994454054', profile: 'Олимпиады', olympiadScore: 450, isPaid: false },
+      { id: 's8', name: 'Школа Интеллектуал', rating: 21, distance: 20, time: 40, site: 'https://schint.mskobr.ru', phone: '+74994455210', profile: 'Математика', olympiadScore: 180, isPaid: false },
+      { id: 's9', name: 'Школа 1329', rating: 10, distance: 18, time: 35, site: 'https://sch1329za.mskobr.ru', phone: '+74954320505', profile: 'ИТ классы', olympiadScore: 195, isPaid: false },
+      { id: 's10', name: 'Лицей Вторая школа', rating: 7, distance: 10, time: 20, site: 'https://sch2.mskobr.ru', phone: '+74991371769', profile: 'Алгоритмы', olympiadScore: 380, isPaid: false },
+      { id: 's11', name: 'Хорошкола', rating: 2, distance: 17.9, time: 42, site: 'https://hi.horoshkola.ru', phone: '+74951291389', profile: 'VR . Нейросети', olympiadScore: 65, isPaid: true },
+      { id: 's12', name: 'Новая школа', rating: 3, distance: 13.2, time: 37, site: 'https://n.school', phone: '+74951507916', profile: 'ИТ полигон', olympiadScore: 58, isPaid: true },
+      { id: 's13', name: 'НИЯУ МИФИ', rating: 16, distance: 10, time: 20, site: 'https://preduniversariy.mephi.ru', phone: '+74957885699', profile: 'Кибербезопасность', olympiadScore: 140, isPaid: false },
+      { id: 's14', name: 'Школа 444', rating: 44, distance: 19, time: 35, site: 'https://sch444v.mskobr.ru', phone: '+74954652455', profile: 'Математика . ИИ', olympiadScore: 115, isPaid: false },
+      { id: 's15', name: 'Школа 1514', rating: 4, distance: 13, time: 25, site: 'https://sch1514uz.mskobr.ru', phone: '+74991318038', profile: 'Математика', olympiadScore: 175, isPaid: false }
+    ];
+
+    const STATUSES = [
+      { id: 'plan', label: 'План', color: 'bg-slate-800 border-slate-700 text-slate-300' },
+      { id: 'agreed', label: 'Встреча', color: 'bg-blue-900 border-blue-800 text-blue-300' },
+      { id: 'visited', label: 'Визит', color: 'bg-purple-900 border-purple-800 text-purple-300' },
+      { id: 'selected', label: 'Цель', color: 'bg-emerald-900 border-emerald-800 text-emerald-300' },
+      { id: 'rejected', label: 'Архив', color: 'bg-rose-900 border-rose-800 text-rose-300' },
+    ];
+
+    const SORT_OPTIONS = [
+      { id: 'distance', icon: Navigation, label: 'КМ' },
+      { id: 'olympiadScore', icon: Trophy, label: 'ИТ' },
+      { id: 'rating', icon: Star, label: 'ТОП' },
+      { id: 'isPaid', icon: CreditCard, label: 'РУБ' },
+    ];
+
+    function App() {
+      // Имитация Firebase для локального демо без реальной базы
+      const [schools, setSchools] = useState(() => {
+        return initialSchoolsData.map((s, i) => ({ ...s, status: 'plan', order: i, comment: '' }));
+      });
+      const [activeTab, setActiveTab] = useState('plan');
+      const [sortStack, setSortStack] = useState(['distance', 'olympiadScore', 'rating', 'isPaid']);
+      const [editingSchool, setEditingSchool] = useState(null);
+
+      const list = useMemo(() => {
+        return schools
+          .filter(s => s.status === activeTab)
+          .sort((a, b) => {
+            for (const key of sortStack) {
+              let diff = 0;
+              if (key === 'distance') diff = a.distance - b.distance;
+              else if (key === 'olympiadScore') diff = b.olympiadScore - a.olympiadScore;
+              else if (key === 'rating') diff = a.rating - b.rating;
+              else if (key === 'isPaid') diff = (a.isPaid === b.isPaid) ? 0 : (a.isPaid ? 1 : -1);
+
+              if (diff !== 0) return diff;
+            }
+            return (a.order || 0) - (b.order || 0);
+          });
+      }, [schools, activeTab, sortStack]);
+
+      const toggleSort = (id) => {
+        setSortStack(prev => {
+          const remaining = prev.filter(x => x !== id);
+          return [id, ...remaining];
+        });
+      };
+
+      const save = (e) => {
+        e.preventDefault();
+        setSchools(prev => prev.map(s => s.id === editingSchool.id ? editingSchool : s));
+        setEditingSchool(null);
+      };
+
+      const moveManual = (s, dir) => {
+        const idx = list.findIndex(x => x.id === s.id);
+        if (dir === 'up' && idx === 0) return;
+        if (dir === 'down' && idx === list.length - 1) return;
+        const neighbor = list[dir === 'up' ? idx - 1 : idx + 1];
+        
+        setSchools(prev => prev.map(item => {
+          if (item.id === s.id) return { ...item, order: neighbor.order };
+          if (item.id === neighbor.id) return { ...item, order: s.order };
+          return item;
+        }));
+      };
+
+      return (
+        <div className="min-h-screen bg-slate-900 text-slate-50 pb-20 select-none">
+          {/* Шапка (Glassmorphism) */}
+          <header className="glass sticky top-0 z-40 px-4 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-b border-white/5">
+            <div className="max-w-xl mx-auto flex flex-col gap-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-black flex items-center gap-3 tracking-widest text-shadow">
+                    <GraduationCap className="text-blue-500 w-8 h-8 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                    ИТ . CRM
+                  </h1>
+                  <div className="flex items-center gap-1 mt-1 opacity-60">
+                    <Info className="w-3 h-3 text-slate-400" />
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Цепочка приоритетов активна</p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  {SORT_OPTIONS.map(o => {
+                    const priority = sortStack.indexOf(o.id) + 1;
+                    const isLeader = priority === 1;
+                    return (
+                      <button 
+                        key={o.id}
+                        onClick={() => toggleSort(o.id)}
+                        className={`relative w-12 h-12 rounded-xl transition-all flex items-center justify-center border border-white/10 ${
+                          isLeader 
+                            ? 'bg-blue-600/20 shadow-[0_0_15px_rgba(37,99,235,0.5)] scale-110 z-10 text-blue-400 border-blue-500/50' 
+                            : 'bg-slate-800 text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        <o.icon className="w-6 h-6" />
+                        <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center border border-slate-900 shadow-xl ${
+                          isLeader ? 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]' : 'bg-slate-700 text-slate-400'
+                        }`}>
+                          {priority}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
+                {STATUSES.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveTab(s.id)}
+                    className={`flex-1 whitespace-nowrap px-5 py-3 rounded-xl text-[11px] font-black transition-all border border-white/5 ${
+                      activeTab === s.id 
+                        ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)] border-blue-500' 
+                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                    }`}
+                  >
+                    {s.label.toUpperCase()} . {schools.filter(x => x.status === s.id).length}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-xl mx-auto p-4 space-y-5 mt-4">
+            <div className="flex items-center gap-3 px-4 py-3 bg-slate-800/50 rounded-xl border border-white/5 shadow-inner">
+              <Filter className="w-3 h-3 text-blue-500 opacity-80" />
+              <div className="flex items-center gap-2">
+                {sortStack.map((id, i) => (
+                  <React.Fragment key={id}>
+                    <span className={`text-[10px] tracking-widest font-black uppercase ${i === 0 ? 'text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]' : 'text-slate-500'}`}>
+                      {SORT_OPTIONS.find(o => o.id === id).label}
+                    </span>
+                    {i < sortStack.length - 1 && <span className="text-slate-600 text-[9px] opacity-50">›</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            {list.map(s => (
+              <div key={s.id} className="glass-card rounded-[24px] overflow-hidden flex flex-col hover:shadow-[0_10px_40px_rgba(0,0,0,0.8)] transition-all">
+                <div className="p-5 flex items-start gap-4">
+                  <div className="flex flex-col gap-1 items-center bg-slate-900/80 p-2 rounded-xl border border-white/5 shrink-0 shadow-inner">
+                    <button onClick={() => moveManual(s, 'up')} className="p-1.5 text-slate-500 hover:text-blue-400 active:scale-125 transition-transform drop-shadow hover:drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]">
+                      <ChevronUp className="w-6 h-6" />
+                    </button>
+                    <button onClick={() => moveManual(s, 'down')} className="p-1.5 text-slate-500 hover:text-blue-400 active:scale-125 transition-transform drop-shadow hover:drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]">
+                      <ChevronDown className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`px-3 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest shadow-lg ${
+                        s.isPaid ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      }`}>
+                        {s.isPaid ? 'Платная' : 'Бесплатная'}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[12px] font-black text-slate-300 bg-slate-900/80 px-3 py-1 rounded-md border border-white/5 shadow-inner">
+                        <Star className="w-4 h-4 text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.8)]" /> {s.rating}
+                      </div>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-50 truncate mb-4 leading-tight drop-shadow-md">
+                      {s.name}
+                    </h2>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] tracking-wide font-black border transition-colors shadow-lg ${sortStack[0] === 'distance' ? 'bg-blue-600/20 border-blue-500/50 text-blue-300' : 'bg-slate-800/50 border-white/5 text-slate-400'}`}>
+                        <Navigation className="w-4 h-4" /> {s.distance} км
+                      </div>
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] tracking-wide font-black border transition-colors shadow-lg ${sortStack[0] === 'olympiadScore' ? 'bg-blue-600/20 border-blue-500/50 text-blue-300' : 'bg-amber-900/20 border-amber-500/20 text-amber-400'}`}>
+                        <Trophy className="w-4 h-4" /> ИТ {s.olympiadScore}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {s.comment && (
+                  <div className="mx-5 mb-5 p-4 bg-slate-900/60 rounded-xl border-l-4 border-blue-500 text-[12px] text-slate-300 font-bold italic leading-relaxed shadow-inner">
+                    {s.comment}
+                  </div>
+                )}
+
+                <div className="px-5 pb-5 flex gap-3">
+                  <a href={s.site} target="_blank" className="flex-1 flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 py-4 rounded-xl text-[13px] font-black shadow-lg active:scale-95 transition-all border border-white/5">
+                    <Globe className="w-4 h-4 text-blue-400" /> САЙТ
+                  </a>
+                  <button onClick={() => setEditingSchool({ ...s })} className="flex-1 flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 py-4 rounded-xl text-[13px] font-black border border-blue-500/30 active:scale-95 transition-all shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                    <Settings className="w-4 h-4" /> УПРАВЛЯТЬ
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {list.length === 0 && (
+              <div className="text-center py-24 bg-slate-800/30 rounded-[32px] border-2 border-dashed border-slate-700 glass">
+                <Clock className="w-16 h-16 text-slate-600 mx-auto mb-4 drop-shadow-md" />
+                <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest drop-shadow">Категория пуста</p>
+              </div>
+            )}
+          </main>
+
+          {editingSchool && (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/80 backdrop-blur-xl">
+              <div className="bg-slate-800 border border-white/10 w-full max-w-lg rounded-t-[40px] sm:rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden animate-in slide-in-from-bottom duration-300">
+                <div className="p-8 pb-12">
+                  <div className="flex justify-between items-center mb-8">
+                    <div className="flex flex-col gap-1">
+                      <h3 className="text-2xl font-black text-white leading-tight drop-shadow-md">{editingSchool.name}</h3>
+                      <p className="text-[11px] font-black text-blue-400/80 uppercase tracking-widest italic drop-shadow">Редактирование данных . CRM</p>
+                    </div>
+                    <button onClick={() => setEditingSchool(null)} className="p-3 bg-slate-900/50 rounded-[12px] text-slate-400 hover:text-rose-400 active:scale-90 transition-all border border-white/5 hover:border-rose-500/30">
+                      <XCircle className="w-7 h-7" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={save} className="space-y-6">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
+                      {STATUSES.map(st => (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setEditingSchool({ ...editingSchool, status: st.id })}
+                          className={`px-5 py-3 rounded-xl text-[11px] font-black transition-all whitespace-nowrap border border-white/5 shadow-lg ${
+                            editingSchool.status === st.id 
+                              ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.6)] border-blue-400' 
+                              : 'bg-slate-900/80 text-slate-500 hover:bg-slate-800'
+                          }`}
+                        >
+                          {st.label.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 drop-shadow">Дата встречи</label>
+                        <input 
+                          type="date" 
+                          value={editingSchool.appointmentDate || ''} 
+                          onChange={e => setEditingSchool({ ...editingSchool, appointmentDate: e.target.value })}
+                          className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-4 text-[13px] font-black text-white outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 drop-shadow">Время</label>
+                        <input 
+                          type="time" 
+                          value={editingSchool.appointmentTime || ''} 
+                          onChange={e => setEditingSchool({ ...editingSchool, appointmentTime: e.target.value })}
+                          className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-4 text-[13px] font-black text-white outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 drop-shadow">Итоги разговора</label>
+                      <textarea 
+                        value={editingSchool.comment || ''} 
+                        onChange={e => setEditingSchool({ ...editingSchool, comment: e.target.value })}
+                        placeholder="Детали . условия . результат звонка ."
+                        className="w-full bg-slate-900/80 border border-slate-700/50 rounded-2xl px-6 py-5 text-[13px] font-bold text-white outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.3)] min-h-[140px] transition-all leading-relaxed resize-none"
+                      />
+                    </div>
+
+                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-[16px] shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95 transition-all text-[14px] tracking-widest uppercase border border-blue-400/50">
+                      Сохранить данные
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
