@@ -83,20 +83,23 @@
     const { useState, useEffect, useMemo, useRef } = React;
     
     const createLucideIcon = (iconName) => {
+      const kebabName = iconName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
       return ({ className }) => {
         const ref = useRef(null);
         useEffect(() => {
           if (ref.current) {
-            ref.current.innerHTML = '';
-            const iconSvg = lucide.icons[iconName];
-            if (iconSvg) {
-              const parser = new DOMParser();
-              const svgDoc = parser.parseFromString(iconSvg.toSvg({ class: className, width: 24, height: 24 }), 'image/svg+xml');
-              ref.current.appendChild(svgDoc.documentElement);
-            }
+            lucide.createIcons({
+              root: ref.current,
+              nameAttr: 'data-lucide',
+              icons: lucide.icons
+            });
           }
         }, [className]);
-        return <span ref={ref} className="inline-flex items-center justify-center"></span>;
+        return (
+          <span ref={ref} className={`inline-flex items-center justify-center ${className || ''}`}>
+            <i data-lucide={kebabName}></i>
+          </span>
+        );
       };
     };
 
