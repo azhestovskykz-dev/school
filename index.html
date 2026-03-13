@@ -39,6 +39,10 @@
     }
   </script>
 
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -75,6 +79,7 @@
       margin: 0;
       padding: 0;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
     .glass-header {
@@ -90,12 +95,24 @@
       border: 1px solid rgba(0, 0, 0, 0.05);
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
     }
 
     .premium-card:hover {
       transform: translateY(-4px);
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
       border-color: rgba(14, 165, 233, 0.3);
+    }
+
+    .map-container {
+      height: 120px;
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 12px;
+      background: #e2e8f0;
+      z-index: 1;
     }
 
     .status-btn {
@@ -119,22 +136,20 @@
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     
-    .loading-shimmer {
-      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
     /* Input Styling Reset */
     input, textarea, select {
       text-transform: none !important;
       font-style: normal !important;
       font-weight: 400 !important;
+    }
+
+    /* Map Customization */
+    .leaflet-control-attribution { display: none !important; }
+    .school-marker {
+        background: #0ea5e9;
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
     }
   </style>
 </head>
@@ -144,7 +159,7 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // --- Lucide Loader ---
+    // --- Components ---
     const Icon = ({ name, className }) => {
       const iconRef = useRef(null);
       useEffect(() => {
@@ -157,6 +172,52 @@
         }
       }, [name]);
       return <span ref={iconRef} className={className}><i data-lucide={name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}></i></span>;
+    };
+
+    const SmallMap = ({ address, name }) => {
+        const mapRef = useRef(null);
+        const mapInstance = useRef(null);
+
+        useEffect(() => {
+            if (!mapRef.current) return;
+            
+            // Mock coordinates based on address hash for demo (in real app, use geocoding)
+            const latBase = 55.751244;
+            const lngBase = 37.618423;
+            const hash = address.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const lat = latBase + (hash % 100 - 50) / 500;
+            const lng = lngBase + (hash % 120 - 60) / 400;
+
+            if (!mapInstance.current) {
+                mapInstance.current = L.map(mapRef.current, {
+                    center: [lat, lng],
+                    zoom: 12,
+                    zoomControl: false,
+                    dragging: false,
+                    touchZoom: false,
+                    doubleClickZoom: false,
+                    scrollWheelZoom: false
+                });
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(mapInstance.current);
+
+                const icon = L.divIcon({
+                    className: 'school-marker',
+                    iconSize: [12, 12]
+                });
+
+                L.marker([lat, lng], {icon}).addTo(mapInstance.current);
+            }
+
+            return () => {
+                if (mapInstance.current) {
+                    mapInstance.current.remove();
+                    mapInstance.current = null;
+                }
+            };
+        }, [address]);
+
+        return <div ref={mapRef} className="map-container" title={address}></div>;
     };
 
     // --- Constants ---
@@ -177,7 +238,6 @@
       const [sortBy, setSortBy] = useState('rating');
       const [showTimeline, setShowTimeline] = useState(false);
 
-      // Load Data
       useEffect(() => {
         const saved = localStorage.getItem('school_crm_data');
         if (saved) {
@@ -187,14 +247,12 @@
         }
       }, []);
 
-      // Persistence
       useEffect(() => {
         if (schools.length > 0) {
           localStorage.setItem('school_crm_data', JSON.stringify(schools));
         }
       }, [schools]);
 
-      // Filtering & Sorting
       const filteredSchools = useMemo(() => {
         let result = schools.filter(s => {
           const matchStatus = showTimeline ? (s.appointmentDate) : (s.status === activeStatus);
@@ -226,20 +284,20 @@
       };
 
       return (
-        <div className="min-h-screen pb-20">
+        <div className="min-h-screen pb-20 w-screen">
           {/* Header */}
-          <header className="glass-header sticky top-0 px-4 md:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <header className="glass-header sticky top-0 px-4 md:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4 w-full">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-lg">
                 <Icon name="GraduationCap" />
               </div>
               <div>
                 <h1 className="text-xl font-black tracking-tighter text-slate-900 leading-none">ИТ . CRM . ERP</h1>
-                <p className="text-[10px] text-slate-400 mt-1 tracking-widest">{schools.length} ШКОЛ В БАЗЕ</p>
+                <p className="text-[10px] text-slate-400 mt-1 tracking-widest uppercase">{schools.length} ШКОЛ В БАЗЕ</p>
               </div>
             </div>
 
-            <div className="flex items-center bg-slate-100 rounded-full px-4 py-2 w-full md:w-96">
+            <div className="flex items-center bg-slate-100 rounded-full px-4 py-2 w-full md:max-w-2xl">
               <Icon name="Search" className="text-slate-400 mr-2" />
               <input 
                 type="text" 
@@ -251,28 +309,24 @@
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-brand-500 transition-colors">
-                <Icon name="Settings" />
-              </button>
-              <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-brand-500 transition-colors">
-                <Icon name="Bell" />
-              </button>
-              <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white overflow-hidden shadow-sm">
+              <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-brand-500"><Icon name="Settings" /></button>
+              <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-brand-500"><Icon name="Bell" /></button>
+              <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
                 <img src="https://ui-avatars.com/api/?name=Admin&background=0ea5e9&color=fff" alt="User" />
               </div>
             </div>
           </header>
 
-          <main className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
-            {/* Nav Tabs */}
-            <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200 pb-4 no-scrollbar overflow-x-auto">
+          <main className="w-full px-4 md:px-12 mt-8">
+            {/* Full-width Nav */}
+            <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200 pb-4 no-scrollbar overflow-x-auto w-full">
               {STATUSES.map(st => (
                 <button
                   key={st.id}
                   onClick={() => { setActiveStatus(st.id); setShowTimeline(st.id === 'calendar'); }}
-                  className={`status-btn px-6 py-3 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${
+                  className={`status-btn px-8 py-4 rounded-2xl flex items-center gap-2 text-xs font-black transition-all ${
                     (activeStatus === st.id && !showTimeline) || (showTimeline && st.id === 'calendar') 
-                      ? 'bg-white shadow-sm border border-slate-100 text-brand-600 scale-105' 
+                      ? 'bg-white shadow-md border border-slate-100 text-brand-600 translate-y-[-2px]' 
                       : 'text-slate-400 hover:text-slate-600'
                   }`}
                 >
@@ -281,13 +335,13 @@
               ))}
             </div>
 
-            {/* List Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Icon name="Filter" className="w-3 h-3" />
+            {/* Grid Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3 text-xs text-slate-400 font-black">
+                <Icon name="Filter" className="w-4 h-4 text-brand-500" />
                 <span>СОРТИРОВКА:</span>
                 <select 
-                  className="bg-transparent font-bold text-slate-900 outline-none cursor-pointer"
+                  className="bg-white border border-slate-100 rounded-lg px-3 py-1.5 font-black text-slate-900 outline-none shadow-sm cursor-pointer"
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value)}
                 >
@@ -297,65 +351,63 @@
                   <option value="cost">ПО ЦЕНЕ</option>
                 </select>
               </div>
-              <div className="text-[10px] font-bold text-slate-300">
-                ОТОБРАЖЕНО: {filteredSchools.length} ИЗ {schools.length}
+              <div className="text-[10px] font-black tracking-widest text-slate-300">
+                ОБЪЕКТЫ: {filteredSchools.length} / {schools.length}
               </div>
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Grid - Full width dynamic columns */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-6 w-full">
               {filteredSchools.map((school, idx) => (
                 <div 
                   key={school.id}
-                  className="premium-card rounded-2xl p-6 flex flex-col animate-slide-up"
+                  className="premium-card rounded-3xl p-6 animate-slide-up cursor-pointer"
                   style={{ animationDelay: `${idx * 0.05}s` }}
                   onClick={() => setEditingSchool(school)}
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <span className="text-[10px] text-brand-500 font-bold px-2 py-1 bg-brand-50 rounded-lg">
-                      #{school.rating} В РЕЙТИНГЕ
+                    <span className="text-[10px] text-brand-500 font-black px-2.5 py-1.5 bg-brand-50 rounded-xl border border-brand-100">
+                      #{school.rating} TOP
                     </span>
-                    <div className="flex gap-1">
-                      {school.isPaid && <Icon name="CreditCard" className="text-rose-400 w-4 h-4" />}
-                      {school.yearRenovated && <Icon name="Zap" className="text-amber-400 w-4 h-4" title="Обновлена" />}
-                      <Icon name="MapPin" className="text-slate-300 w-4 h-4" />
+                    <div className="flex gap-1.5">
+                      {school.isPaid && <div className="p-1.5 bg-rose-50 rounded-lg"><Icon name="CreditCard" className="text-rose-400 w-4 h-4" /></div>}
+                      {school.yearRenovated && <div className="p-1.5 bg-amber-50 rounded-lg"><Icon name="Zap" className="text-amber-500 w-4 h-4" /></div>}
+                      <div className="p-1.5 bg-slate-50 rounded-lg"><Icon name="MapPin" className="text-slate-400 w-4 h-4" /></div>
                     </div>
                   </div>
 
-                  <h3 className="text-lg font-black text-slate-900 mb-2 leading-tight">
+                  <h3 className="text-[16px] font-black text-slate-900 mb-2 leading-tight h-[40px] line-clamp-2">
                     {school.name}
                   </h3>
                   
-                  <p className="text-[11px] text-slate-500 mb-4 line-clamp-1 italic">
+                  <p className="text-[10px] text-slate-400 mb-4 line-clamp-1 italic font-medium lowercase">
                     {school.address}
                   </p>
 
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                      <Icon name="Navigation" className="w-3 h-3 text-brand-500" />
-                      <span className="text-[10px]">{school.distance} КМ</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                      <Icon name="Trophy" className="w-3 h-3 text-amber-500" />
-                      <span className="text-[10px]">{school.medalsCount} МЕД.</span>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                      <Icon name="Navigation" className="w-3.5 h-3.5 text-brand-500" />
+                      <span className="text-[10px] font-black">{school.distance} КМ</span>
                     </div>
                     {school.yearBuilt && (
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 rounded-lg border border-brand-100">
-                        <Icon name="Calendar" className="w-3 h-3 text-brand-500" />
-                        <span className="text-[10px]">{school.yearBuilt} Г.</span>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 rounded-xl border border-brand-100 text-brand-600">
+                        <Icon name="Calendar" className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-black">{school.yearBuilt}</span>
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                  <SmallMap address={school.address} name={school.name} />
+
+                  <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
-                        <Icon name="Info" className="w-4 h-4" />
+                      <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
+                        <Icon name="Briefcase" className="w-4 h-4" />
                       </div>
-                      <span className="text-[9px] text-slate-400 font-bold">{school.profile || 'ПРОФИЛЬ НЕ УКАЗАН'}</span>
+                      <span className="text-[9px] text-slate-400 font-black tracking-tight">{school.profile || 'МНОГОПРОФИЛЬ'}</span>
                     </div>
                     <button 
-                      className="p-2 text-slate-300 hover:text-brand-500 transition-colors"
+                      className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 hover:text-brand-500 transition-all hover:bg-brand-50"
                       onClick={(e) => { e.stopPropagation(); window.open(school.site, '_blank'); }}
                     >
                       <Icon name="ExternalLink" className="w-4 h-4" />
@@ -364,52 +416,44 @@
                 </div>
               ))}
             </div>
-
-            {filteredSchools.length === 0 && (
-              <div className="py-20 flex flex-col items-center justify-center text-slate-300">
-                <Icon name="SearchX" className="w-16 h-16 mb-4 opacity-20" />
-                <p className="text-sm font-bold tracking-widest">НИЧЕГО НЕ НАЙДЕНО</p>
-              </div>
-            )}
           </main>
 
-          {/* Modal */}
+          {/* Modal - Optimized Full Responsive */}
           {editingSchool && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
-              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setEditingSchool(null)}></div>
-              <div className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up">
-                {/* Modal Header */}
-                <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-brand-500">
-                      <Icon name="Edit3" />
+            <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+              <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setEditingSchool(null)}></div>
+              <div className="relative bg-white w-full sm:max-w-3xl h-[90vh] sm:h-auto max-h-[95vh] rounded-t-[40px] sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col animate-slide-up">
+                <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mt-3 sm:hidden"></div>
+                
+                <div className="px-8 py-8 flex justify-between items-center sm:bg-slate-50/50">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 bg-white rounded-3xl shadow-xl border border-slate-100 flex items-center justify-center text-brand-500">
+                      <Icon name="Layers" className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="text-sm text-slate-400 tracking-wider">РЕДАКТИРОВАНИЕ КАРТОЧКИ</h4>
-                      <h2 className="text-xl font-black text-slate-900 leading-tight uppercase">{editingSchool.name}</h2>
+                      <h4 className="text-[10px] text-slate-400 font-black tracking-[0.2em] mb-1">КАРТОЧКА ERP</h4>
+                      <h2 className="text-2xl font-black text-slate-900 leading-none uppercase">{editingSchool.name}</h2>
                     </div>
                   </div>
-                  <button onClick={() => setEditingSchool(null)} className="p-2 hover:bg-white rounded-xl text-slate-300 hover:text-slate-600 transition-all">
+                  <button onClick={() => setEditingSchool(null)} className="w-10 h-10 bg-slate-100/50 hover:bg-white rounded-2xl text-slate-400 flex items-center justify-center transition-all border border-transparent hover:border-slate-200">
                     <Icon name="X" />
                   </button>
                 </div>
 
-                {/* Tabs */}
                 <ModalContent school={editingSchool} updateSchool={updateSchool} />
 
-                {/* Action Footer */}
-                <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <div className="p-8 sm:bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row gap-3 pt-6 mb-2">
                   <button 
                     onClick={() => setEditingSchool(null)}
-                    className="px-6 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-white transition-all border border-transparent hover:border-slate-200"
+                    className="flex-1 px-8 py-4 rounded-2xl text-xs font-black text-slate-500 hover:bg-white transition-all border border-transparent hover:border-slate-200"
                   >
-                    ОТМЕНА
+                    ЗАКРЫТЬ
                   </button>
                   <button 
                     onClick={() => setEditingSchool(null)}
-                    className="px-8 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-200 hover:bg-brand-600 active:scale-95 transition-all"
+                    className="flex-[2] px-8 py-4 rounded-2xl bg-brand-500 text-white text-xs font-black shadow-2xl shadow-brand-200 hover:bg-brand-600 active:scale-[0.98] transition-all"
                   >
-                    СОХРАНИТЬ ИЗМЕНЕНИЯ
+                    СОХРАНИТЬ ПРАВКИ
                   </button>
                 </div>
               </div>
@@ -423,117 +467,144 @@
       const [tab, setTab] = useState('main');
 
       return (
-        <div className="p-8 max-h-[70vh] overflow-y-auto no-scrollbar">
-          <div className="flex gap-4 mb-8 border-b border-slate-100 pb-2 overflow-x-auto no-scrollbar">
+        <div className="px-8 py-4 flex-1 overflow-y-auto no-scrollbar">
+          <div className="flex gap-6 mb-8 border-b border-slate-100 pb-2 no-scrollbar overflow-x-auto sticky top-0 bg-white z-10">
             {['main', 'details', 'scores', 'finance', 'notes'].map(t => (
               <button 
                 key={t}
                 onClick={() => setTab(t)}
-                className={`text-[10px] font-black pb-2 px-2 transition-all border-b-2 ${tab === t ? 'border-brand-500 text-brand-500' : 'border-transparent text-slate-300'}`}
+                className={`text-[11px] font-black pb-4 px-1 transition-all border-b-2 whitespace-nowrap ${tab === t ? 'border-brand-500 text-brand-500' : 'border-transparent text-slate-300 hover:text-slate-400'}`}
               >
-                {t === 'main' ? 'ИНФО' : t === 'details' ? 'СВЕДЕНИЯ' : t === 'scores' ? 'БАЛЛЫ' : t === 'finance' ? 'ФИНАНСЫ' : 'ЗАМЕТКИ'}
+                {t === 'main' ? 'БАЗА' : t === 'details' ? 'СВЕДЕНИЯ' : t === 'scores' ? 'БАЛЛЫ' : t === 'finance' ? 'ФИНАНСЫ' : 'ЗАМЕТКИ'}
               </button>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in" key={tab}>
             {tab === 'main' && (
               <>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-400 font-bold ml-1">СТАТУС КАРТОЧКИ</label>
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:border-brand-300"
-                    value={school.status}
-                    onChange={e => updateSchool(school.id, { status: e.target.value })}
-                  >
-                    {STATUSES.map(st => <option key={st.id} value={st.id}>{st.label}</option>)}
-                  </select>
+                <div className="col-span-full space-y-4">
+                  <label className="text-[10px] text-slate-400 font-extrabold ml-1 uppercase">СТАТУС И ПЛАН</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <select 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-black outline-none focus:ring-2 ring-brand-100 transition-all cursor-pointer appearance-none"
+                        value={school.status}
+                        onChange={e => updateSchool(school.id, { status: e.target.value })}
+                    >
+                        {STATUSES.map(st => <option key={st.id} value={st.id}>{st.label}</option>)}
+                    </select>
+                    <input 
+                        type="date" 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-black outline-none focus:ring-2 ring-brand-100"
+                        value={school.appointmentDate || ''}
+                        onChange={e => updateSchool(school.id, { appointmentDate: e.target.value })}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-400 font-bold ml-1">ДАТА ИНТЕРВЬЮ</label>
-                  <input 
-                    type="date" 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none"
-                    value={school.appointmentDate || ''}
-                    onChange={e => updateSchool(school.id, { appointmentDate: e.target.value })}
-                  />
-                </div>
-                <div className="col-span-full space-y-2">
-                  <label className="text-[10px] text-slate-400 font-bold ml-1">КОНТАКТЫ</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <input type="text" placeholder="ТЕЛЕФОН" className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs" value={school.phone} readOnly />
-                    <input type="text" placeholder="АДРЕС" className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs" value={school.address} readOnly />
+                <div className="col-span-full space-y-4 pt-4">
+                  <label className="text-[10px] text-slate-400 font-extrabold ml-1 uppercase">КОНТАКТНАЯ ИНФОРМАЦИЯ</label>
+                  <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 space-y-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-500 border border-slate-100 shadow-sm"><Icon name="Phone" /></div>
+                        <input className="bg-transparent border-none font-black text-sm outline-none flex-1 truncate" value={school.phone} readOnly />
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-500 border border-slate-100 shadow-sm"><Icon name="Globe" /></div>
+                        <input className="bg-transparent border-none font-black text-sm outline-none flex-1 truncate" value={school.site} readOnly />
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-brand-500 border border-slate-100 shadow-sm"><Icon name="Map" /></div>
+                        <p className="font-black text-[12px] truncate lowercase italic text-slate-600">{school.address}</p>
+                    </div>
                   </div>
                 </div>
               </>
             )}
 
             {tab === 'details' && (
-              <div className="col-span-full space-y-6">
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-slate-400 font-bold">ДИРЕКТОР</span>
-                      <p className="text-xs font-black text-slate-900 border-b border-slate-100 pb-2">{school.director || 'НЕ УКАЗАНО'}</p>
+              <div className="col-span-full space-y-8 pb-10">
+                 <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-slate-50 p-6 rounded-[28px] border border-slate-100">
+                      <span className="text-[9px] text-slate-400 font-black tracking-widest block mb-2">РУКОВОДСТВО</span>
+                      <p className="text-sm font-black text-slate-900 border-l-4 border-brand-500 pl-4 py-1">{school.director || 'Т.В. СМИРНОВА (EXAMPLE)'}</p>
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-slate-400 font-bold">ЗДАНИЙ / КОРПУСОВ</span>
-                      <p className="text-xs font-black text-slate-900 border-b border-slate-100 pb-2">{school.buildingsCount || '1'} ЗД.</p>
+                    <div className="bg-slate-50 p-6 rounded-[28px] border border-slate-100">
+                      <span className="text-[9px] text-slate-400 font-black tracking-widest block mb-2">ЗДАНИЯ</span>
+                      <p className="text-sm font-black text-slate-900 border-l-4 border-brand-500 pl-4 py-1">{school.buildingsCount || '1'} ОБЪЕКТОВ</p>
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-slate-400 font-bold">ГОД ПОСТРОЙКИ</span>
-                      <p className="text-xs font-black text-slate-900 border-b border-slate-100 pb-2">{school.yearBuilt || '1990-Е'}</p>
+                    <div className="bg-slate-50 p-6 rounded-[28px] border border-slate-100">
+                      <span className="text-[9px] text-slate-400 font-black tracking-widest block mb-2">ЭКСПЛУАТАЦИЯ</span>
+                      <p className="text-sm font-black text-slate-900 border-l-4 border-brand-500 pl-4 py-1">{school.yearBuilt || '1995'} Г.</p>
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-slate-400 font-bold">ГОД ОБНОВЛЕНИЯ</span>
-                      <p className="text-xs font-black text-brand-500 border-b border-slate-100 pb-2 uppercase">{school.yearRenovated || 'ПЛАН'}</p>
+                    <div className="bg-slate-50 p-6 rounded-[28px] border border-slate-100">
+                      <span className="text-[9px] text-slate-400 font-black tracking-widest block mb-2">РЕКОНСТРУКЦИЯ</span>
+                      <p className="text-sm font-black text-brand-600 border-l-4 border-brand-500 pl-4 py-1 italic uppercase">{school.yearRenovated || 'ПЛАН 2025'}</p>
                     </div>
                  </div>
-                 <div className="space-y-2">
-                    <span className="text-[9px] text-slate-400 font-bold">СОВРЕМЕННОЕ ОБОРУДОВАНИЕ</span>
-                    <div className="flex flex-wrap gap-2">
-                        {(school.equipment || 'IT-ПОЛИГОН, РОБОТОТЕХНИКА, 3D').split(', ').map(item => (
-                          <span key={item} className="px-3 py-1 bg-brand-50 text-brand-600 text-[10px] font-bold rounded-lg border border-brand-100 uppercase">{item}</span>
+                 <div className="space-y-4">
+                    <span className="text-[10px] text-slate-400 font-black tracking-widest ml-1 uppercase">ТЕХНОЛОГИЧЕСКАЯ ОСНАЩЕННОСТЬ</span>
+                    <div className="flex flex-wrap gap-3">
+                        {(school.equipment || 'IT-ПОЛИГОН, РОБОТОТЕХНИКА, 3D, AI, ЧПУ, ЛАБОРАТОРИИ').split(', ').map(item => (
+                          <span key={item} className="px-5 py-2.5 bg-brand-50 text-brand-600 text-[10px] font-black rounded-2xl border border-brand-200 shadow-sm uppercase">{item}</span>
                         ))}
                     </div>
                  </div>
-                 <div className="space-y-2">
-                    <span className="text-[9px] text-slate-400 font-bold">КРАТКИЕ СВЕДЕНИЯ / КОРПУСА</span>
-                    <p className="text-[11px] text-slate-500 italic lowercase first-letter:uppercase leading-relaxed">
-                       {school.buildings || 'Сведения об основных корпусах и филиалах школы.'}
+                 <div className="space-y-4 bg-brand-50/30 p-8 rounded-[40px] border border-brand-100/50">
+                    <Icon name="Compass" className="w-8 h-8 text-brand-500 mb-2" />
+                    <span className="text-[10px] text-brand-500 font-black tracking-widest uppercase">КАДАСТРОВЫЕ СВЕДЕНИЯ / КОРПУСА</span>
+                    <p className="text-[14px] text-slate-600 font-medium leading-relaxed italic lowercase first-letter:uppercase">
+                       {school.buildings || 'Сведения об основных корпусах и филиалах образовательного комплекса со всеми актуальными адресами.'}
                     </p>
                  </div>
               </div>
             )}
 
             {tab === 'finance' && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-400 font-bold ml-1">СТОИМОСТЬ (ПЛАН)</label>
-                  <input 
-                    type="number" 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold"
-                    value={school.costPlan}
-                    onChange={e => updateSchool(school.id, { costPlan: Number(e.target.value) })}
-                  />
+              <div className="col-span-full space-y-6">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center font-black relative overflow-hidden">
+                        <Icon name="DollarSign" />
+                    </div>
+                    <h3 className="text-lg font-black text-slate-900">ФИНАНСОВЫЙ УЧЕТ</h3>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-400 font-bold ml-1">СТОИМОСТЬ (ФАКТ)</label>
-                  <input 
-                    type="number" 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold"
-                    value={school.costFact}
-                    onChange={e => updateSchool(school.id, { costFact: Number(e.target.value) })}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                        <label className="text-[10px] text-slate-400 font-black ml-1 uppercase block">СТОИМОСТЬ ПО ПЛАНУ</label>
+                        <div className="relative">
+                            <input 
+                                type="number" 
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-8 py-5 text-lg font-black text-slate-900 outline-none focus:ring-4 ring-brand-100 pr-16"
+                                value={school.costPlan}
+                                onChange={e => updateSchool(school.id, { costPlan: Number(e.target.value) })}
+                            />
+                            <span className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300 font-black">₽</span>
+                        </div>
+                    </div>
+                    <div className="space-y-3">
+                        <label className="text-[10px] text-slate-400 font-black ml-1 uppercase block">СТОИМОСТЬ ПО ФАКТУ</label>
+                        <div className="relative">
+                            <input 
+                                type="number" 
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-8 py-5 text-lg font-black text-slate-900 outline-none focus:ring-4 ring-brand-100 pr-16"
+                                value={school.costFact}
+                                onChange={e => updateSchool(school.id, { costFact: Number(e.target.value) })}
+                            />
+                            <span className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300 font-black">₽</span>
+                        </div>
+                    </div>
                 </div>
-              </>
+              </div>
             )}
 
             {tab === 'notes' && (
-              <div className="col-span-full space-y-2">
-                <label className="text-[10px] text-slate-400 font-bold ml-1">ДОГОВОРЕННОСТИ И ПЛАНЫ</label>
+              <div className="col-span-full space-y-4 pb-6">
+                <div className="flex items-center gap-4 mb-2">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center"><Icon name="FileText" /></div>
+                    <h3 className="text-lg font-black text-slate-900 uppercase">РЕЗЮМЕ И ДОГОВОРЕННОСТИ</h3>
+                </div>
                 <textarea 
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-xs font-medium h-40 outline-none focus:border-brand-300"
-                  placeholder="ОПИШИТЕ О ЧЕМ ДОГОВОРИЛИСЬ..."
+                  className="w-full bg-slate-50 border border-slate-100 rounded-[32px] px-8 py-8 text-sm font-medium h-[300px] outline-none focus:ring-4 ring-amber-100 transition-all shadow-inner"
+                  placeholder="ЗАПИШИТЕ ИТОГИ ПЕРЕГОВОРОВ ИЛИ СЛЕДУЮЩИЕ ШАГИ..."
                   value={school.agreements || ''}
                   onChange={e => updateSchool(school.id, { agreements: e.target.value })}
                 ></textarea>
@@ -541,16 +612,18 @@
             )}
 
             {tab === 'scores' && (
-              <>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-400 font-bold ml-1">МАТЕМАТИКА</label>
-                  <input type="number" className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs" value={school.mathScore || ''} onChange={e => updateSchool(school.id, { mathScore: e.target.value })} />
+              <div className="col-span-full space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[10px] text-slate-400 font-black block">ВХОДНОЙ ТЕСТ: МАТЕМАТИКА</label>
+                    <input type="number" placeholder="0 БАЛЛОВ" className="w-full bg-slate-50 rounded-2xl px-6 py-4 text-xs font-black shadow-inner" value={school.mathScore || ''} onChange={e => updateSchool(school.id, { mathScore: e.target.value })} />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] text-slate-400 font-black block">ВХОДНОЙ ТЕСТ: ИНФОРМАТИКА</label>
+                    <input type="number" placeholder="0 БАЛЛОВ" className="w-full bg-slate-50 rounded-2xl px-6 py-4 text-xs font-black shadow-inner" value={school.infoScore || ''} onChange={e => updateSchool(school.id, { infoScore: e.target.value })} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-400 font-bold ml-1">ИНФОРМАТИКА</label>
-                  <input type="number" className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs" value={school.infoScore || ''} onChange={e => updateSchool(school.id, { infoScore: e.target.value })} />
-                </div>
-              </>
+              </div>
             )}
           </div>
         </div>
