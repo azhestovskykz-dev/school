@@ -3,17 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ИТ . CRM - ТОП 50 ШКОЛ</title>
+  <title>ИТ . CRM . ERP — ШКОЛЫ МОСКВЫ</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            blue: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 900: '#1e3a8a' },
-            slate: { 50: '#f8fafc', 800: '#1e293b', 900: '#0f172a' }
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              900: '#0c4a6e',
+            }
+          },
+          animation: {
+            'slide-up': 'slideUp 0.5s ease-out forwards',
+            'fade-in': 'fadeIn 0.3s ease-out forwards',
+          },
+          keyframes: {
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            }
           }
         }
       }
@@ -25,16 +44,21 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
 
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@1,400;1,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@1,300;1,400;1,700&display=swap" rel="stylesheet">
   
+  <!-- Data Files -->
+  <script src="schools_part1.js"></script>
+  <script src="schools_part2.js"></script>
+
   <style>
     :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --text: #f8fafc;
-      --accent: #3b82f6;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --accent: #0ea5e9;
     }
     
     * {
@@ -43,542 +67,454 @@
       font-style: italic !important;
       font-weight: 700 !important;
       text-transform: uppercase !important;
-      -webkit-tap-highlight-color: transparent;
     }
 
-    body, html {
-      margin: 0; padding: 0;
+    body {
       background-color: var(--bg);
       color: var(--text);
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
     }
-    
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    
+
+    .glass-header {
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      z-index: 50;
+    }
+
+    .premium-card {
+      background: white;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .premium-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      border-color: rgba(14, 165, 233, 0.3);
+    }
+
+    .status-btn {
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; width: 100%; height: 3px;
+      background: currentColor;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .status-btn.active::after {
+      opacity: 1;
+    }
+
     .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     
-    .glass {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+    .loading-shimmer {
+      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
     }
 
-    .glass-card {
-      background: linear-gradient(145deg, #1e293b, #0f172a);
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
     }
 
-    .fade-in { animation: fadeIn 0.3s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    /* Input Styling Reset */
+    input, textarea, select {
+      text-transform: none !important;
+      font-style: normal !important;
+      font-weight: 400 !important;
+    }
   </style>
 </head>
-<body class="antialiased">
+<body class="selection:bg-brand-100 selection:text-brand-900">
   <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
-    
-    const createLucideIcon = (iconName) => {
-      const kebabName = iconName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
-      return ({ className }) => {
-        const ref = useRef(null);
-        useEffect(() => {
-          if (ref.current) {
-            lucide.createIcons({
-              root: ref.current,
-              nameAttr: 'data-lucide',
-              icons: lucide.icons
-            });
-          }
-        }, [className]);
-        return (
-          <span ref={ref} className={`inline-flex items-center justify-center ${className || ''}`}>
-            <i data-lucide={kebabName}></i>
-          </span>
-        );
-      };
+
+    // --- Lucide Loader ---
+    const Icon = ({ name, className }) => {
+      const iconRef = useRef(null);
+      useEffect(() => {
+        if (iconRef.current) {
+          lucide.createIcons({
+            root: iconRef.current,
+            nameAttr: 'data-lucide',
+            icons: lucide.icons
+          });
+        }
+      }, [name]);
+      return <span ref={iconRef} className={className}><i data-lucide={name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}></i></span>;
     };
 
-    const Settings = createLucideIcon('Settings');
-    const Navigation = createLucideIcon('Navigation');
-    const Trophy = createLucideIcon('Trophy');
-    const Star = createLucideIcon('Star');
-    const CreditCard = createLucideIcon('CreditCard');
-    const GraduationCap = createLucideIcon('GraduationCap');
-    const Info = createLucideIcon('Info');
-    const Filter = createLucideIcon('Filter');
-    const ChevronUp = createLucideIcon('ChevronUp');
-    const ChevronDown = createLucideIcon('ChevronDown');
-    const Globe = createLucideIcon('Globe');
-    const Clock = createLucideIcon('Clock');
-    const XCircle = createLucideIcon('XCircle');
-    const Calendar = createLucideIcon('Calendar');
-    const MessageSquare = createLucideIcon('MessageSquare');
-    const CheckCircle = createLucideIcon('CheckCircle');
-
-    // Предзаполненная база из 50 ИТ школ Москвы (для демо сгенерированы лучшие + вымышленные варианты)
-    const initialSchoolsData = Array.from({ length: 50 }).map((_, i) => {
-      const realNames = [
-        'Школа 548 ЗИЛАРТ', 'Школа 548 Совхоз Ленина', 'Лицей 1533 ЛИТ', 'Бауманская школа 1580', 'Школа 1580 Символ',
-        'Школа Летово', 'СУНЦ МГУ', 'Школа Интеллектуал', 'Школа 1329', 'Вторая школа',
-        'Хорошкола', 'Новая школа', 'НИЯУ МИФИ', 'Школа 444', 'Школа 1514',
-        'Лицей ВШЭ', 'Школа 57', 'Класс-центр', 'Школа 2007 ФМШ', 'Школа 1568',
-        'Курчатовская школа', 'Школа 1543', 'Школа 179', 'Гимназия 1543', 'Школа 1502 МЭИ',
-        'Школа ЦПМ', 'Школа 1535', 'Гимназия 1514', 'Академическая гимназия 56', 'Президентский ФМЛ 239',
-        'Школа 2086', 'Лицей 1502 при МЭИ', 'Школа 1581', 'Школа 67', 'Школа 1253',
-        'Гимназия 1567', 'Школа 1520', 'Лицей 1547', 'Школа 109', 'Лицей 1525',
-        'Школа 1524', 'Школа 1534', 'Школа 1561', 'Школа 1583', 'Школа 1547',
-        'Гимназия 1529', 'Школа 1409', 'Летово Junior', 'Физтех-лицей им. Капицы', 'Школа Сириус'
-      ];
-      
-      const isPaid = !!(i === 5 || i === 10 || i === 11 || i === 25 || i === 47); // Некоторые школы платные
-
-      return {
-        id: `s${i+1}`,
-        name: realNames[i],
-        rating: Math.floor(Math.random() * 50) + 1,
-        distance: parseFloat((Math.random() * 30 + 1).toFixed(1)),
-        site: 'https://mskobr.ru',
-        phone: '+7495' + Math.floor(1000000 + Math.random() * 9000000),
-        profile: ['Кванториум', 'Олимпиады', 'Инженерия', 'Алгоритмы', 'ИИ', 'ИТ классы'][i % 6],
-        olympiadScore: Math.floor(Math.random() * 400) + 50,
-        isPaid: isPaid,
-        status: 'plan', // план, встреча, цель, архив
-        order: i,
-        // Новые CRM ERP поля:
-        mathScore: null,
-        infoScore: null,
-        rusScore: null,
-        appointmentDate: '',
-        appointmentTime: '',
-        agreements: '',
-        timeline: [] // { date: '2026-03-12', text: 'Звонок состоялся', type: 'call' }
-      };
-    });
-
+    // --- Constants ---
     const STATUSES = [
-      { id: 'plan', label: 'План', color: 'bg-slate-800' },
-      { id: 'agreed', label: 'Встреча', color: 'bg-blue-900' },
-      { id: 'visited', label: 'Визит', color: 'bg-purple-900' },
-      { id: 'selected', label: 'Цель', color: 'bg-emerald-900' },
-      { id: 'rejected', label: 'Архив', color: 'bg-rose-900' },
-      { id: 'timeline', label: 'Расписание', color: 'bg-amber-900' }, // Новый системный статус
+      { id: 'plan', label: 'ПЛАН', color: 'bg-slate-100 text-slate-600' },
+      { id: 'meet', label: 'ВСТРЕЧА', color: 'bg-blue-100 text-blue-600' },
+      { id: 'visit', label: 'ВИЗИТ', color: 'bg-purple-100 text-purple-600' },
+      { id: 'target', label: 'ЦЕЛЬ', color: 'bg-green-100 text-green-600' },
+      { id: 'archive', label: 'АРХИВ', color: 'bg-gray-200 text-gray-500' },
+      { id: 'calendar', label: 'РАСПИСАНИЕ', color: 'bg-amber-100 text-amber-600' }
     ];
 
-    const SORT_OPTIONS = [
-      { id: 'distance', icon: Navigation, label: 'КМ' },
-      { id: 'olympiadScore', icon: Trophy, label: 'ИТ' },
-      { id: 'rating', icon: Star, label: 'ТОП' },
-      { id: 'isPaid', icon: CreditCard, label: 'РУБ' },
-    ];
+    const App = () => {
+      const [schools, setSchools] = useState([]);
+      const [activeStatus, setActiveStatus] = useState('plan');
+      const [editingSchool, setEditingSchool] = useState(null);
+      const [search, setSearch] = useState('');
+      const [sortBy, setSortBy] = useState('rating');
+      const [showTimeline, setShowTimeline] = useState(false);
 
-    const MODAL_TABS = [
-      { id: 'scores', label: 'Оценки' },
-      { id: 'interview', label: 'Собеседование' },
-      { id: 'agreements', label: 'Итоги' }
-    ];
-
-    function App() {
-      // Подключение LocalStorage
-      const [schools, setSchools] = useState(() => {
-        const saved = localStorage.getItem('schoolCrmData');
-        if (saved) return JSON.parse(saved);
-        return initialSchoolsData;
-      });
-
+      // Load Data
       useEffect(() => {
-        localStorage.setItem('schoolCrmData', JSON.stringify(schools));
+        const saved = localStorage.getItem('school_crm_data');
+        if (saved) {
+          setSchools(JSON.parse(saved));
+        } else {
+          setSchools(window.SCHOOLS_DATABASE || []);
+        }
+      }, []);
+
+      // Persistence
+      useEffect(() => {
+        if (schools.length > 0) {
+          localStorage.setItem('school_crm_data', JSON.stringify(schools));
+        }
       }, [schools]);
 
-      const [activeTab, setActiveTab] = useState('timeline');
-      const [sortStack, setSortStack] = useState(['distance', 'olympiadScore', 'rating', 'isPaid']);
-      const [editingSchool, setEditingSchool] = useState(null);
-      const [modalTab, setModalTab] = useState('scores');
-
-      const list = useMemo(() => {
-        if (activeTab === 'timeline') {
-          // Специальный вид: только школы с назначенной датой
-          return schools
-            .filter(s => s.appointmentDate)
-            .sort((a, b) => {
-              const dateA = new Date(`${a.appointmentDate}T${a.appointmentTime || '00:00'}`);
-              const dateB = new Date(`${b.appointmentDate}T${b.appointmentTime || '00:00'}`);
-              return dateA - dateB;
-            });
-        }
-
-        return schools
-          .filter(s => s.status === activeTab)
-          .sort((a, b) => {
-            for (const key of sortStack) {
-              let diff = 0;
-              if (key === 'distance') diff = a.distance - b.distance;
-              else if (key === 'olympiadScore') diff = b.olympiadScore - a.olympiadScore;
-              else if (key === 'rating') diff = a.rating - b.rating;
-              else if (key === 'isPaid') diff = (a.isPaid === b.isPaid) ? 0 : (a.isPaid ? 1 : -1);
-
-              if (diff !== 0) return diff;
-            }
-            return (a.order || 0) - (b.order || 0);
-          });
-      }, [schools, activeTab, sortStack]);
-
-      const toggleSort = (id) => {
-        setSortStack(prev => {
-          const remaining = prev.filter(x => x !== id);
-          return [id, ...remaining];
+      // Filtering & Sorting
+      const filteredSchools = useMemo(() => {
+        let result = schools.filter(s => {
+          const matchStatus = showTimeline ? (s.appointmentDate) : (s.status === activeStatus);
+          const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || 
+                             s.address.toLowerCase().includes(search.toLowerCase());
+          return matchStatus && matchSearch;
         });
-        if (activeTab === 'timeline') setActiveTab('plan'); // Переключаем на план при сортировке
-      };
 
-      const save = (e) => {
-        e.preventDefault();
-        
-        // Добавление в таймлайн если изменилась дата или итоги
-        const oldSchool = schools.find(s => s.id === editingSchool.id);
-        const newTimeline = [...(editingSchool.timeline || [])];
-        
-        if (oldSchool.agreements !== editingSchool.agreements && editingSchool.agreements) {
-          newTimeline.unshift({ date: new Date().toISOString(), text: 'Обновлены итоги разговора', type: 'note' });
-        }
-        if (oldSchool.appointmentDate !== editingSchool.appointmentDate) {
-          newTimeline.unshift({ date: new Date().toISOString(), text: `Назначена встреча: ${editingSchool.appointmentDate} ${editingSchool.appointmentTime}`, type: 'meeting' });
-        }
-        
-        const finalSchool = { ...editingSchool, timeline: newTimeline };
-        
-        setSchools(prev => prev.map(s => s.id === finalSchool.id ? finalSchool : s));
-        setEditingSchool(null);
-      };
+        result.sort((a, b) => {
+          if (sortBy === 'rating') return a.rating - b.rating;
+          if (sortBy === 'distance') return a.distance - b.distance;
+          if (sortBy === 'medals') return b.medalsCount - a.medalsCount;
+          if (sortBy === 'cost') return b.costPlan - a.costPlan;
+          return a.order - b.order;
+        });
 
-      const moveManual = (s, dir) => {
-        const idx = list.findIndex(x => x.id === s.id);
-        if (dir === 'up' && idx === 0) return;
-        if (dir === 'down' && idx === list.length - 1) return;
-        const neighbor = list[dir === 'up' ? idx - 1 : idx + 1];
-        
-        setSchools(prev => prev.map(item => {
-          if (item.id === s.id) return { ...item, order: neighbor.order };
-          if (item.id === neighbor.id) return { ...item, order: s.order };
-          return item;
-        }));
-      };
+        return result;
+      }, [schools, activeStatus, search, sortBy, showTimeline]);
 
-      // Подсчет общего балла
-      const getTotalScore = (s) => (Number(s.mathScore) || 0) + (Number(s.infoScore) || 0) + (Number(s.rusScore) || 0);
+      const counts = useMemo(() => {
+        return STATUSES.reduce((acc, st) => {
+          acc[st.id] = schools.filter(s => s.status === st.id).length;
+          return acc;
+        }, {});
+      }, [schools]);
+
+      const updateSchool = (id, updates) => {
+        setSchools(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+      };
 
       return (
-        <div className="min-h-screen bg-slate-900 text-slate-50 pb-20 select-none">
-          {/* Шапка (Glassmorphism) */}
-          <header className="glass sticky top-0 z-40 px-4 py-5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] border-b border-white/5">
-            <div className="max-w-2xl mx-auto flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-black flex items-center gap-3 tracking-widest text-shadow">
-                    <GraduationCap className="text-blue-500 w-8 h-8 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                    ИТ . CRM . ERP
-                  </h1>
-                  <div className="flex items-center gap-1 mt-1 opacity-60">
-                    <Info className="w-3 h-3 text-slate-400" />
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{schools.length} Школ в базе</p>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  {SORT_OPTIONS.map(o => {
-                    const priority = sortStack.indexOf(o.id) + 1;
-                    const isLeader = priority === 1;
-                    return (
-                      <button 
-                        key={o.id}
-                        onClick={() => toggleSort(o.id)}
-                        className={`relative w-12 h-12 rounded-xl transition-all flex items-center justify-center border border-white/10 ${
-                          isLeader && activeTab !== 'timeline'
-                            ? 'bg-blue-600/20 shadow-[0_0_15px_rgba(37,99,235,0.5)] scale-110 z-10 text-blue-400 border-blue-500/50' 
-                            : 'bg-slate-800 text-slate-500 hover:text-slate-300'
-                        }`}
-                      >
-                        <o.icon className="w-6 h-6" />
-                        {(isLeader && activeTab !== 'timeline') && (
-                          <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center border border-slate-900 shadow-xl bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]`}>
-                            {priority}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+        <div className="min-h-screen pb-20">
+          {/* Header */}
+          <header className="glass-header sticky top-0 px-4 md:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <Icon name="GraduationCap" />
               </div>
-              
-              <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
-                {STATUSES.map(s => {
-                  const count = s.id === 'timeline' 
-                    ? schools.filter(x => x.appointmentDate).length 
-                    : schools.filter(x => x.status === s.id).length;
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => setActiveTab(s.id)}
-                      className={`flex-1 whitespace-nowrap px-4 py-3 rounded-xl text-[11px] font-black transition-all border border-white/5 ${
-                        activeTab === s.id 
-                          ? (s.id === 'timeline' ? 'bg-amber-600 border-amber-500 text-white shadow-[0_0_15px_rgba(217,119,6,0.4)]' : 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)] border-blue-500')
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                      }`}
-                    >
-                      {s.label.toUpperCase()} . {count}
-                    </button>
-                  );
-                })}
+              <div>
+                <h1 className="text-xl font-black tracking-tighter text-slate-900 leading-none">ИТ . CRM . ERP</h1>
+                <p className="text-[10px] text-slate-400 mt-1 tracking-widest">{schools.length} ШКОЛ В БАЗЕ</p>
+              </div>
+            </div>
+
+            <div className="flex items-center bg-slate-100 rounded-full px-4 py-2 w-full md:w-96">
+              <Icon name="Search" className="text-slate-400 mr-2" />
+              <input 
+                type="text" 
+                placeholder="ПОИСК ШКОЛЫ ИЛИ АДРЕСА..." 
+                className="bg-transparent border-none outline-none w-full text-xs font-bold"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-brand-500 transition-colors">
+                <Icon name="Settings" />
+              </button>
+              <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-brand-500 transition-colors">
+                <Icon name="Bell" />
+              </button>
+              <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white overflow-hidden shadow-sm">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=0ea5e9&color=fff" alt="User" />
               </div>
             </div>
           </header>
 
-          <main className="max-w-2xl mx-auto p-4 space-y-5 mt-4">
-            {activeTab === 'timeline' && (
-              <div className="flex items-center justify-center mb-6">
-                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 px-6 py-3 rounded-2xl flex items-center gap-3">
-                  <Calendar className="w-5 h-5" />
-                  <span className="text-[12px] font-black tracking-widest uppercase">Будущие собеседования</span>
-                </div>
+          <main className="max-w-7xl mx-auto px-4 md:px-8 mt-8">
+            {/* Nav Tabs */}
+            <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-200 pb-4 no-scrollbar overflow-x-auto">
+              {STATUSES.map(st => (
+                <button
+                  key={st.id}
+                  onClick={() => { setActiveStatus(st.id); setShowTimeline(st.id === 'calendar'); }}
+                  className={`status-btn px-6 py-3 rounded-xl flex items-center gap-2 text-xs font-bold transition-all ${
+                    (activeStatus === st.id && !showTimeline) || (showTimeline && st.id === 'calendar') 
+                      ? 'bg-white shadow-sm border border-slate-100 text-brand-600 scale-105' 
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  {st.label} . <span className="opacity-50">{counts[st.id] || 0}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* List Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <Icon name="Filter" className="w-3 h-3" />
+                <span>СОРТИРОВКА:</span>
+                <select 
+                  className="bg-transparent font-bold text-slate-900 outline-none cursor-pointer"
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value)}
+                >
+                  <option value="rating">ПО РЕЙТИНГУ</option>
+                  <option value="distance">ПО ДИСТАНЦИИ</option>
+                  <option value="medals">ПО МЕДАЛЯМ</option>
+                  <option value="cost">ПО ЦЕНЕ</option>
+                </select>
               </div>
-            )}
+              <div className="text-[10px] font-bold text-slate-300">
+                ОТОБРАЖЕНО: {filteredSchools.length} ИЗ {schools.length}
+              </div>
+            </div>
 
-            {list.map(s => (
-              <div key={s.id} className="glass-card rounded-[24px] overflow-hidden flex flex-col hover:shadow-[0_10px_40px_rgba(0,0,0,0.8)] transition-all fade-in relative">
-                
-                {/* Индикатор статуса */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${STATUSES.find(st => st.id === s.status)?.color?.replace('bg-', 'bg-') || 'bg-slate-700'}`}></div>
-
-                <div className="p-5 pl-7 flex items-start gap-4">
-                  {activeTab !== 'timeline' && (
-                    <div className="flex flex-col gap-1 items-center bg-slate-900/80 p-2 rounded-xl border border-white/5 shrink-0 shadow-inner">
-                      <button onClick={() => moveManual(s, 'up')} className="p-1.5 text-slate-500 hover:text-blue-400 active:scale-125 transition-transform"><ChevronUp className="w-6 h-6" /></button>
-                      <button onClick={() => moveManual(s, 'down')} className="p-1.5 text-slate-500 hover:text-blue-400 active:scale-125 transition-transform"><ChevronDown className="w-6 h-6" /></button>
+            {/* Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredSchools.map((school, idx) => (
+                <div 
+                  key={school.id}
+                  className="premium-card rounded-2xl p-6 flex flex-col animate-slide-up"
+                  style={{ animationDelay: `${idx * 0.05}s` }}
+                  onClick={() => setEditingSchool(school)}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="text-[10px] text-brand-500 font-bold px-2 py-1 bg-brand-50 rounded-lg">
+                      #{school.rating} В РЕЙТИНГЕ
+                    </span>
+                    <div className="flex gap-1">
+                      {school.isPaid && <Icon name="CreditCard" className="text-rose-400 w-4 h-4" />}
+                      <Icon name="MapPin" className="text-slate-300 w-4 h-4" />
                     </div>
-                  )}
+                  </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex gap-2">
-                        <div className={`px-3 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest shadow-lg ${
-                          s.isPaid ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        }`}>
-                          {s.isPaid ? 'Платная' : 'Бесплатная'}
-                        </div>
-                        <div className="px-3 py-1 rounded-sm text-[9px] font-black uppercase tracking-widest shadow-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                          {s.profile}
-                        </div>
-                      </div>
-                      
-                      {getTotalScore(s) > 0 && (
-                        <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-400 bg-amber-900/20 px-3 py-1 rounded-md border border-amber-500/20 shadow-inner">
-                          Рез: {getTotalScore(s)} / 300
-                        </div>
-                      )}
+                  <h3 className="text-lg font-black text-slate-900 mb-2 leading-tight">
+                    {school.name}
+                  </h3>
+                  
+                  <p className="text-[11px] text-slate-500 mb-4 line-clamp-1 italic">
+                    {school.address}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                      <Icon name="Navigation" className="w-3 h-3 text-brand-500" />
+                      <span className="text-[10px]">{school.distance} КМ</span>
                     </div>
-                    
-                    <h2 className="text-xl font-black text-slate-50 truncate mb-1 leading-tight drop-shadow-md">
-                      {s.name}
-                    </h2>
-                    
-                    {activeTab === 'timeline' ? (
-                      <div className="mt-3 flex items-center gap-2 text-rose-400 bg-rose-900/20 p-3 rounded-xl border border-rose-500/20 mb-2">
-                        <Clock className="w-5 h-5 flex-shrink-0 animate-pulse" />
-                        <div>
-                          <p className="text-[10px] font-bold uppercase opacity-80">Назначено:</p>
-                          <p className="text-[14px] font-black">{s.appointmentDate} в {s.appointmentTime || '--:--'}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] tracking-wide font-black border transition-colors shadow-lg ${sortStack[0] === 'distance' ? 'bg-blue-600/20 border-blue-500/50 text-blue-300' : 'bg-slate-800/50 border-white/5 text-slate-400'}`}>
-                          <Navigation className="w-4 h-4" /> {s.distance} км
-                        </div>
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] tracking-wide font-black border transition-colors shadow-lg ${sortStack[0] === 'olympiadScore' ? 'bg-blue-600/20 border-blue-500/50 text-blue-300' : 'bg-slate-800/50 border-white/5 text-slate-400'}`}>
-                          <Trophy className="w-4 h-4" /> ИТ {s.olympiadScore}
-                        </div>
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] tracking-wide font-black border transition-colors shadow-lg ${sortStack[0] === 'rating' ? 'bg-blue-600/20 border-blue-500/50 text-blue-300' : 'bg-slate-800/50 border-white/5 text-slate-400'}`}>
-                          <Star className="w-4 h-4" /> ТОП {s.rating}
-                        </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                      <Icon name="Trophy" className="w-3 h-3 text-amber-500" />
+                      <span className="text-[10px]">{school.medalsCount} МЕД.</span>
+                    </div>
+                    {school.isPaid && (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 rounded-lg border border-rose-100">
+                        <Icon name="Wallet" className="w-3 h-3 text-rose-500" />
+                        <span className="text-[10px]">{school.costPlan.toLocaleString()} ₽</span>
                       </div>
                     )}
                   </div>
-                </div>
 
-                {s.agreements && activeTab !== 'timeline' && (
-                  <div className="mx-5 mb-5 p-4 bg-slate-900/60 rounded-xl border-l-4 border-blue-500 text-[12px] text-slate-300 font-bold italic leading-relaxed shadow-inner line-clamp-2">
-                    {s.agreements}
+                  <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                        <Icon name="Info" className="w-4 h-4" />
+                      </div>
+                      <span className="text-[9px] text-slate-400 font-bold">{school.profile || 'ПРОФИЛЬ НЕ УКАЗАН'}</span>
+                    </div>
+                    <button 
+                      className="p-2 text-slate-300 hover:text-brand-500 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); window.open(school.site, '_blank'); }}
+                    >
+                      <Icon name="ExternalLink" className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-
-                <div className="px-5 pb-5 pl-7 flex gap-3">
-                  <a href={s.site} target="_blank" className="flex-1 flex items-center justify-center gap-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 py-4 rounded-xl text-[13px] font-black shadow-lg active:scale-95 transition-all border border-white/5">
-                    <Globe className="w-4 h-4 text-blue-400" /> САЙТ
-                  </a>
-                  <button onClick={() => { setEditingSchool({ ...s }); setModalTab('scores'); }} className="flex-1 flex items-center justify-center gap-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 py-4 rounded-xl text-[13px] font-black border border-blue-500/30 active:scale-95 transition-all shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-                    <Settings className="w-4 h-4" /> CRM / ERP
-                  </button>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
 
-            {list.length === 0 && (
-              <div className="text-center py-24 bg-slate-800/30 rounded-[32px] border-2 border-dashed border-slate-700 glass">
-                <CheckCircle className="w-16 h-16 text-slate-600 mx-auto mb-4 drop-shadow-md" />
-                <p className="text-[12px] font-black text-slate-500 uppercase tracking-widest drop-shadow">Пусто</p>
+            {filteredSchools.length === 0 && (
+              <div className="py-20 flex flex-col items-center justify-center text-slate-300">
+                <Icon name="SearchX" className="w-16 h-16 mb-4 opacity-20" />
+                <p className="text-sm font-bold tracking-widest">НИЧЕГО НЕ НАЙДЕНО</p>
               </div>
             )}
           </main>
 
+          {/* Modal */}
           {editingSchool && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/80 backdrop-blur-xl fade-in overflow-y-auto">
-              <div className="bg-slate-800 border border-white/10 w-full max-w-2xl rounded-t-[40px] sm:rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.8)] overflow-hidden my-auto">
-                <div className="p-6 sm:p-8 pb-12">
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="flex flex-col gap-1 pr-4">
-                      <h3 className="text-2xl font-black text-white leading-tight drop-shadow-md">{editingSchool.name}</h3>
-                      <p className="text-[11px] font-black text-blue-400/80 uppercase tracking-widest italic drop-shadow">Система управления</p>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+              <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setEditingSchool(null)}></div>
+              <div className="relative bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col animate-slide-up">
+                {/* Modal Header */}
+                <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-brand-500">
+                      <Icon name="Edit3" />
                     </div>
-                    <button onClick={() => setEditingSchool(null)} className="p-3 bg-slate-900/50 rounded-[12px] text-slate-400 hover:text-rose-400 active:scale-90 transition-all border border-white/5 shrink-0">
-                      <XCircle className="w-7 h-7" />
-                    </button>
+                    <div>
+                      <h4 className="text-sm text-slate-400 tracking-wider">РЕДАКТИРОВАНИЕ КАРТОЧКИ</h4>
+                      <h2 className="text-xl font-black text-slate-900 leading-tight uppercase">{editingSchool.name}</h2>
+                    </div>
                   </div>
+                  <button onClick={() => setEditingSchool(null)} className="p-2 hover:bg-white rounded-xl text-slate-300 hover:text-slate-600 transition-all">
+                    <Icon name="X" />
+                  </button>
+                </div>
 
-                  {/* Статусы */}
-                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-6 mb-2 border-b border-white/5">
-                    {STATUSES.filter(s => s.id !== 'timeline').map(st => (
-                      <button
-                        key={st.id}
-                        type="button"
-                        onClick={() => setEditingSchool({ ...editingSchool, status: st.id })}
-                        className={`px-5 py-2.5 rounded-xl text-[10px] sm:text-[11px] font-black transition-all whitespace-nowrap shadow-lg border ${
-                          editingSchool.status === st.id 
-                            ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(59,130,246,0.6)] border-blue-400' 
-                            : 'bg-slate-900/80 text-slate-500 hover:bg-slate-800 border-white/5'
-                        }`}
-                      >
-                        {st.label.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
+                {/* Tabs */}
+                <ModalContent school={editingSchool} updateSchool={updateSchool} />
 
-                  <form onSubmit={save} className="space-y-6">
-                    
-                    {/* Табы */}
-                    <div className="flex bg-slate-900/50 p-1 rounded-2xl border border-white/5">
-                      {MODAL_TABS.map(tab => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setModalTab(tab.id)}
-                          className={`flex-1 py-3 text-[11px] font-black uppercase rounded-xl transition-all ${
-                            modalTab === tab.id ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-slate-300'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Контент табов */}
-                    <div className="min-h-[220px]">
-                      
-                      {modalTab === 'scores' && (
-                        <div className="space-y-4 fade-in">
-                          <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex justify-between items-center mb-6">
-                            <span className="text-[12px] font-black text-amber-500 uppercase tracking-widest">Общий балл</span>
-                            <span className="text-2xl font-black text-amber-400">
-                              {(Number(editingSchool.mathScore)||0) + (Number(editingSchool.infoScore)||0) + (Number(editingSchool.rusScore)||0)}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-3">
-                            <div className="flex flex-col gap-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center">Математика</label>
-                              <input type="number" max="100" min="0" value={editingSchool.mathScore || ''} onChange={e => setEditingSchool({ ...editingSchool, mathScore: e.target.value })}
-                                className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-4 text-center text-xl font-black text-white focus:border-blue-500" placeholder="-" />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center">Инфо / Физика</label>
-                              <input type="number" max="100" min="0" value={editingSchool.infoScore || ''} onChange={e => setEditingSchool({ ...editingSchool, infoScore: e.target.value })}
-                                className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-4 text-center text-xl font-black text-white focus:border-blue-500" placeholder="-" />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center">Русский</label>
-                              <input type="number" max="100" min="0" value={editingSchool.rusScore || ''} onChange={e => setEditingSchool({ ...editingSchool, rusScore: e.target.value })}
-                                className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-4 text-center text-xl font-black text-white focus:border-blue-500" placeholder="-" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {modalTab === 'interview' && (
-                        <div className="space-y-4 fade-in">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Дата встречи / Экзамена</label>
-                              <input type="date" value={editingSchool.appointmentDate || ''} onChange={e => setEditingSchool({ ...editingSchool, appointmentDate: e.target.value })}
-                                className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-4 text-[13px] font-black text-white focus:border-blue-500" />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Время</label>
-                              <input type="time" value={editingSchool.appointmentTime || ''} onChange={e => setEditingSchool({ ...editingSchool, appointmentTime: e.target.value })}
-                                className="w-full bg-slate-900/80 border border-slate-700/50 rounded-xl px-4 py-4 text-[13px] font-black text-white focus:border-blue-500" />
-                            </div>
-                          </div>
-                          
-                          {/* История */}
-                          <div className="mt-6">
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">История действий</h4>
-                            <div className="bg-slate-900/50 rounded-xl p-4 border border-white/5 max-h-[120px] overflow-y-auto custom-scrollbar">
-                              {!editingSchool.timeline || editingSchool.timeline.length === 0 ? (
-                                <p className="text-[11px] text-slate-500 italic">Событий пока нет</p>
-                              ) : (
-                                <div className="space-y-3">
-                                  {editingSchool.timeline.map((event, i) => (
-                                    <div key={i} className="flex gap-3 text-[11px]">
-                                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 shrink-0"></div>
-                                      <div>
-                                        <p className="text-white font-bold">{event.text}</p>
-                                        <p className="text-slate-500">{new Date(event.date).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</p>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {modalTab === 'agreements' && (
-                        <div className="space-y-4 fade-in h-full">
-                          <div className="flex flex-col gap-2 h-full">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Итоговые договоренности</label>
-                            <textarea 
-                              value={editingSchool.agreements || ''} 
-                              onChange={e => setEditingSchool({ ...editingSchool, agreements: e.target.value })}
-                              placeholder="Прошли собеседование. Обещали перезвонить..."
-                              className="w-full bg-slate-900/80 border border-slate-700/50 rounded-2xl px-6 py-5 text-[13px] font-bold text-white outline-none focus:border-blue-500 min-h-[180px] leading-relaxed resize-none"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                    </div>
-
-                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-[16px] shadow-[0_0_20px_rgba(59,130,246,0.5)] active:scale-95 transition-all text-[14px] tracking-widest uppercase border border-blue-400/50 mt-4">
-                      Сохранить данные
-                    </button>
-                  </form>
-
+                {/* Action Footer */}
+                <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                  <button 
+                    onClick={() => setEditingSchool(null)}
+                    className="px-6 py-2 rounded-xl text-xs font-bold text-slate-500 hover:bg-white transition-all border border-transparent hover:border-slate-200"
+                  >
+                    ОТМЕНА
+                  </button>
+                  <button 
+                    onClick={() => setEditingSchool(null)}
+                    className="px-8 py-2 rounded-xl bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-200 hover:bg-brand-600 active:scale-95 transition-all"
+                  >
+                    СОХРАНИТЬ ИЗМЕНЕНИЯ
+                  </button>
                 </div>
               </div>
             </div>
           )}
+        </div>
+      );
+    };
+
+    const ModalContent = ({ school, updateSchool }) => {
+      const [tab, setTab] = useState('main');
+
+      return (
+        <div className="p-8 max-h-[70vh] overflow-y-auto no-scrollbar">
+          <div className="flex gap-4 mb-8 border-b border-slate-100 pb-2 overflow-x-auto no-scrollbar">
+            {['main', 'scores', 'finance', 'notes'].map(t => (
+              <button 
+                key={t}
+                onClick={() => setTab(t)}
+                className={`text-[10px] font-black pb-2 px-2 transition-all border-b-2 ${tab === t ? 'border-brand-500 text-brand-500' : 'border-transparent text-slate-300'}`}
+              >
+                {t === 'main' ? 'ИНФО' : t === 'scores' ? 'БАЛЛЫ' : t === 'finance' ? 'ФИНАНСЫ' : 'ЗАМЕТКИ'}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {tab === 'main' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">СТАТУС КАРТОЧКИ</label>
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none focus:border-brand-300"
+                    value={school.status}
+                    onChange={e => updateSchool(school.id, { status: e.target.value })}
+                  >
+                    {STATUSES.map(st => <option key={st.id} value={st.id}>{st.label}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">ДАТА ИНТЕРВЬЮ</label>
+                  <input 
+                    type="date" 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold outline-none"
+                    value={school.appointmentDate || ''}
+                    onChange={e => updateSchool(school.id, { appointmentDate: e.target.value })}
+                  />
+                </div>
+                <div className="col-span-full space-y-2">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">КОНТАКТЫ</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="text" placeholder="ТЕЛЕФОН" className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs" value={school.phone} readOnly />
+                    <input type="text" placeholder="АДРЕС" className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs" value={school.address} readOnly />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {tab === 'finance' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">СТОИМОСТЬ (ПЛАН)</label>
+                  <input 
+                    type="number" 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold"
+                    value={school.costPlan}
+                    onChange={e => updateSchool(school.id, { costPlan: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">СТОИМОСТЬ (ФАКТ)</label>
+                  <input 
+                    type="number" 
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-bold"
+                    value={school.costFact}
+                    onChange={e => updateSchool(school.id, { costFact: Number(e.target.value) })}
+                  />
+                </div>
+              </>
+            )}
+
+            {tab === 'notes' && (
+              <div className="col-span-full space-y-2">
+                <label className="text-[10px] text-slate-400 font-bold ml-1">ДОГОВОРЕННОСТИ И ПЛАНЫ</label>
+                <textarea 
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 text-xs font-medium h-40 outline-none focus:border-brand-300"
+                  placeholder="ОПИШИТЕ О ЧЕМ ДОГОВОРИЛИСЬ..."
+                  value={school.agreements || ''}
+                  onChange={e => updateSchool(school.id, { agreements: e.target.value })}
+                ></textarea>
+              </div>
+            )}
+
+            {tab === 'scores' && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">МАТЕМАТИКА</label>
+                  <input type="number" className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs" value={school.mathScore || ''} onChange={e => updateSchool(school.id, { mathScore: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-400 font-bold ml-1">ИНФОРМАТИКА</label>
+                  <input type="number" className="w-full bg-slate-50 rounded-xl px-4 py-3 text-xs" value={school.infoScore || ''} onChange={e => updateSchool(school.id, { infoScore: e.target.value })} />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       );
     }
