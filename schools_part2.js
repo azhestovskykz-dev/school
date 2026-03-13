@@ -25,13 +25,13 @@ const additionalSchoolsData = [
   },
   {
     "id": "s42",
-    "name": "Школа 444",
+    "name": "Школа 1566 (МАРЬИНСКАЯ)",
     "rating": 12,
     "distance": 11.4,
-    "address": "Нижняя Первомайская ул., 14",
-    "site": "https://mskobr.ru",
-    "phone": "+74959911122",
-    "profile": "Математика / Роботы",
+    "address": "Люблинская ул., 173а",
+    "site": "https://sch1566.mskobr.ru",
+    "phone": "+7 (499) 784-88-72",
+    "profile": "МАТЕМАТИКА / ИТ / КАДЕТЫ",
     "medalsCount": 310,
     "graduatesCount": 400,
     "isPaid": false,
@@ -39,11 +39,13 @@ const additionalSchoolsData = [
     "costFact": 0,
     "status": "plan",
     "order": 41,
-    "mathScore": null,
-    "infoScore": null,
-    "rusScore": null,
+    "director": "Смирнова Татьяна Викторовна",
+    "buildingsCount": 15,
+    "yearBuilt": 1995,
+    "yearRenovated": "2024-2025 (РЕКОНСТРУКЦИЯ)",
+    "equipment": "ЧПУ станки, 3D-принтеры, AI-лаборатории, Робототехника",
+    "buildings": "15 зданий (8 школьных + 7 дошкольных). Основной корпус на Люблинской 173а.",
     "appointmentDate": "",
-    "appointmentTime": "",
     "agreements": "",
     "timeline": []
   },
@@ -480,9 +482,9 @@ const additionalSchoolsData = [
     "timeline": []
   }
 ];
-const schoolsDataTotal = [...initialSchoolsData, ...additionalSchoolsData];
+const schoolsDataTotalSplit = [...initialSchoolsData, ...additionalSchoolsData];
 // Добавим еще 20
-const dummySchools = Array.from({ length: 20 }).map((_, i) => ({
+const dummySchoolsGenerated = Array.from({ length: 20 }).map((_, i) => ({
   id: `s${61+i}`,
   name: `Школа №${1000+i}`,
   rating: 100 + i,
@@ -503,4 +505,4 @@ const dummySchools = Array.from({ length: 20 }).map((_, i) => ({
   agreements: "",
   timeline: []
 }));
-window.SCHOOLS_DATABASE = [...schoolsDataTotal, ...dummySchools];
+window.SCHOOLS_DATABASE = [...schoolsDataTotalSplit, ...dummySchoolsGenerated];
