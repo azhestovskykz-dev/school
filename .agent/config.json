@@ -1,0 +1,7 @@
+{
+  "review_policy": {
+    "auto_approve": true,
+    "approval_threshold": 0
+  },
+  "autonomous_mode": true
+}
